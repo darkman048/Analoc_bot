@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>BOT 360°</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet"/>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{
+  --bg:#0d0f14;
+  --card:#161a22;
+  --card2:#1c2130;
+  --orange:#f7931a;
+  --orange2:#ff6b00;
+  --green:#00c896;
+  --red:#ff4757;
+  --text:#e8eaf0;
+  --muted:#6b7280;
+  --border:rgba(247,147,26,.18);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Cairo',sans-serif;overflow:hidden}
+
+/* ── NAV TOP ── */
+.top-nav{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px;background:var(--card);
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:100;
+}
+.top-nav .logo{
+  display:flex;align-items:center;gap:8px;
+  font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:15px;color:var(--orange);
+}
+.logo-badge{
+  width:32px;height:32px;background:var(--orange);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:900;color:#000;
+}
+.icon-row{display:flex;gap:6px;align-items:center}
+.icon-btn{
+  width:34px;height:34px;border-radius:8px;background:var(--card2);
+  border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  color:var(--muted);font-size:15px;transition:.2s;
+}
+.icon-btn.active{background:var(--orange);color:#000}
+.icon-btn:hover{color:var(--orange)}
+
+/* ── MAIN SCROLL ── */
+.main{
+  height:calc(100vh - 56px - 60px);
+  overflow-y:auto;padding:12px;
+  scroll-behavior:smooth;
+}
+.main::-webkit-scrollbar{width:3px}
+.main::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* ── PAGES ── */
+.page{display:none;animation:fadeIn .3s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── PRICE CARD ── */
+.price-card{
+  background:linear-gradient(135deg,var(--card) 0%,#1a1f2e 100%);
+  border:1px solid var(--border);border-radius:16px;
+  padding:18px;margin-bottom:12px;position:relative;overflow:hidden;
+}
+.price-card::before{
+  content:'';position:absolute;top:-40px;right:-40px;
+  width:130px;height:130px;border-radius:50%;
+  background:radial-gradient(circle,rgba(247,147,26,.15),transparent 70%);
+}
+.pair-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.pair-name{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--muted);font-weight:700;letter-spacing:1px}
+.live-dot{
+  display:flex;align-items:center;gap:5px;
+  font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--orange);font-weight:700;
+}
+.live-dot::before{
+  content:'';width:7px;height:7px;border-radius:50%;background:var(--orange);
+  animation:pulse 1.4s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.3)}}
+.price-big{
+  font-family:'IBM Plex Mono',monospace;font-size:32px;font-weight:700;
+  color:var(--text);letter-spacing:-1px;margin-bottom:4px;
+}
+.price-big span{font-size:18px;color:var(--muted)}
+.change-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 10px;border-radius:20px;font-size:13px;font-weight:700;
+  font-family:'IBM Plex Mono',monospace;margin-bottom:12px;
+}
+.change-badge.up{background:rgba(0,200,150,.15);color:var(--green)}
+.change-badge.down{background:rgba(255,71,87,.15);color:var(--red)}
+.hl-row{display:flex;gap:16px;margin-bottom:14px}
+.hl-item{flex:1;background:var(--card2);border-radius:10px;padding:8px 10px}
+.hl-label{font-size:10px;color:var(--muted);margin-bottom:2px}
+.hl-val{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:700;color:var(--text)}
+
+/* Chart canvas */
+.chart-wrap{position:relative;height:90px;margin-bottom:10px}
+canvas.mini-chart{width:100%;height:90px;border-radius:8px}
+
+.dom-row{
+  display:flex;align-items:center;gap:8px;padding:8px 10px;
+  background:var(--card2);border-radius:10px;font-size:12px;
+  font-family:'IBM Plex Mono',monospace;
+}
+.dom-badge{background:var(--orange);color:#000;font-weight:900;font-size:10px;padding:2px 6px;border-radius:6px}
+.dom-text{color:var(--muted)}
+.dom-text b{color:var(--text)}
+
+/* ── HALVING CARD ── */
+.halving-card{
+  background:linear-gradient(135deg,#13171f,#1d2235);
+  border:1px solid var(--border);border-radius:16px;
+  padding:16px;margin-bottom:12px;
+}
+.halving-title{
+  font-size:13px;font-weight:700;color:var(--orange);margin-bottom:12px;
+  display:flex;align-items:center;gap:6px;
+}
+.halving-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.countdown{display:flex;gap:8px;justify-content:center}
+.cd-item{
+  flex:1;background:var(--bg);border-radius:10px;padding:10px 6px;
+  text-align:center;border:1px solid var(--border);
+}
+.cd-num{
+  font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:700;
+  color:var(--text);line-height:1;
+}
+.cd-lbl{font-size:9px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+
+/* ── SECTION CARD (menu items) ── */
+.section-title{
+  font-size:11px;color:var(--orange);font-weight:700;letter-spacing:1px;
+  margin:16px 0 8px;text-align:right;text-transform:uppercase;
+}
+.menu-item{
+  background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:14px 16px;margin-bottom:8px;
+  display:flex;align-items:center;justify-content:space-between;
+  cursor:pointer;transition:.2s;
+  -webkit-user-select:none;user-select:none;
+}
+.menu-item:active{transform:scale(.98);background:var(--card2)}
+.menu-left{display:flex;align-items:center;gap:10px}
+.menu-icon{
+  width:36px;height:36px;border-radius:10px;
+  background:rgba(247,147,26,.12);
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;flex-shrink:0;
+}
+.menu-name{font-size:14px;font-weight:700;color:var(--text)}
+.menu-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.menu-arrow{color:var(--muted);font-size:13px}
+.vip-badge{
+  background:linear-gradient(135deg,var(--orange),var(--orange2));
+  color:#000;font-size:9px;font-weight:900;padding:2px 7px;
+  border-radius:20px;margin-right:4px;letter-spacing:.5px;
+}
+
+/* ── RISK PAGE ── */
+.risk-card{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:16px;margin-bottom:12px;
+}
+.risk-title{font-size:14px;font-weight:700;color:var(--orange);margin-bottom:12px}
+.risk-item{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.risk-item:last-child{border-bottom:none}
+.risk-label{font-size:13px;color:var(--muted)}
+.risk-val{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;color:var(--text)}
+
+/* ── SEARCH PAGE ── */
+.search-wrap{margin-bottom:12px}
+.search-input{
+  width:100%;background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:12px 16px;color:var(--text);
+  font-family:'Cairo',sans-serif;font-size:14px;outline:none;
+  transition:.2s;text-align:right;
+}
+.search-input:focus{border-color:var(--orange)}
+.search-input::placeholder{color:var(--muted)}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav{
+  position:fixed;bottom:0;left:0;right:0;height:60px;
+  background:var(--card);border-top:1px solid var(--border);
+  display:flex;align-items:center;z-index:100;
+}
+.nav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;cursor:pointer;padding:6px;border:none;background:none;
+  color:var(--muted);font-family:'Cairo',sans-serif;font-size:10px;
+  transition:.2s;
+}
+.nav-item.active{color:var(--orange)}
+.nav-item svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ── LOADING ── */
+.loading{text-align:center;padding:20px;color:var(--muted);font-size:13px}
+.spinner{
+  width:28px;height:28px;border:3px solid var(--card2);
+  border-top-color:var(--orange);border-radius:50%;
+  animation:spin .8s linear infinite;margin:0 auto 8px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;top:70px;left:50%;transform:translateX(-50%) translateY(-20px);
+  background:var(--orange);color:#000;font-weight:700;font-size:13px;
+  padding:8px 20px;border-radius:20px;z-index:999;
+  opacity:0;transition:.3s;pointer-events:none;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── DETAIL PANEL ── */
+.detail-panel{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;
+  display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:.3s;
+}
+.detail-panel.open{opacity:1;pointer-events:all}
+.detail-box{
+  background:var(--card);width:100%;border-radius:20px 20px 0 0;
+  padding:20px;transform:translateY(100%);transition:.3s;
+  border-top:2px solid var(--orange);
+}
+.detail-panel.open .detail-box{transform:translateY(0)}
+.detail-close{
+  width:40px;height:4px;background:var(--card2);border-radius:2px;
+  margin:0 auto 16px;cursor:pointer;
+}
+.detail-h{font-size:16px;font-weight:700;color:var(--orange);margin-bottom:8px}
+.detail-body{font-size:13px;color:var(--muted);line-height:1.8}
+.detail-body b{color:var(--text)}
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="top-nav">
+  <div class="icon-row">
+    <button class="icon-btn" onclick="showToast('قريباً')">★</button>
+    <button class="icon-btn" onclick="showToast('قريباً')">⚡</button>
+    <button class="icon-btn" onclick="showToast('قريباً')">⊘</button>
+    <button class="icon-btn" onclick="showToast('قريباً')">⬤</button>
+    <button class="icon-btn" onclick="showToast('قريباً')">≡≡</button>
+    <button class="icon-btn" onclick="showToast('قريباً')">📅</button>
+  </div>
+  <div class="logo">
+    BOT 360°
+    <div class="logo-badge">360</div>
+  </div>
+</nav>
+
+<!-- PAGES -->
+<div class="main">
+
+  <!-- HOME -->
+  <div id="page-home" class="page active">
+    <div class="price-card" id="btc-card">
+      <div class="pair-row">
+        <div class="live-dot">LIVE</div>
+        <div class="pair-name">BTC / USDT</div>
+      </div>
+      <div class="price-big" id="btc-price"><span>$</span>---,---</div>
+      <div id="btc-change" class="change-badge up">▲ +0.00%</div>
+      <div class="chart-wrap"><canvas id="btcChart" class="mini-chart"></canvas></div>
+      <div class="hl-row">
+        <div class="hl-item">
+          <div class="hl-label">أدنى 24H</div>
+          <div class="hl-val" id="btc-low">$---</div>
+        </div>
+        <div class="hl-item">
+          <div class="hl-label">أعلى 24H</div>
+          <div class="hl-val" id="btc-high">$---</div>
+        </div>
+      </div>
+      <div class="dom-row">
+        <div class="dom-badge">360</div>
+        <div class="dom-text">استحواذ BTC: <b id="btc-dom">--.--%</b></div>
+        <div class="dom-text" style="margin-right:auto">| استحواذ ETH: <b id="eth-dom">--.--%</b></div>
+      </div>
+    </div>
+
+    <!-- ETH MINI -->
+    <div class="price-card" id="eth-card" style="padding:14px">
+      <div class="pair-row">
+        <div class="live-dot">LIVE</div>
+        <div class="pair-name">ETH / USDT</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="price-big" id="eth-price" style="font-size:22px"><span>$</span>---</div>
+        <div id="eth-change" class="change-badge up">▲ +0.00%</div>
+      </div>
+    </div>
+
+    <!-- HALVING -->
+    <div class="halving-card">
+      <div class="halving-title">
+        ⏳ العد التنازلي لهالفينج البيتكوين القادم
+        <div class="halving-sub">البلوك 1,050,000</div>
+      </div>
+      <div class="countdown" id="halving"></div>
+    </div>
+  </div>
+
+  <!-- MENU -->
+  <div id="page-menu" class="page">
+    <div class="section-title">الرئيسية</div>
+    <div class="menu-item" onclick="openDetail('wedge')">
+      <div class="menu-arrow">‹</div>
+      <div class="menu-left">
+        <div class="menu-icon">📐</div>
+        <div>
+          <div class="menu-name">الوتد (Wedge Scanner)</div>
+          <div class="menu-sub">كشف أنماط الوتد الصاعد والهابط</div>
+        </div>
+      </div>
+    </div>
+    <div class="menu-item" onclick="openDetail('smc')">
+      <div class="menu-arrow">‹</div>
+      <div class="menu-left">
+        <div class="menu-icon">🧱</div>
+        <div>
+          <div class="menu-name">SMC Order Blocks</div>
+          <div class="menu-sub">تحديد مناطق طلب وعرض الكبار</div>
+        </div>
+      </div>
+    </div>
+    <div class="menu-item" onclick="openDetail('zones')">
+      <div class="menu-arrow">‹</div>
+      <div class="menu-left">
+        <div class="menu-icon">🎯</div>
+        <div>
+          <div class="menu-name">Trading Limit Order (Best Zones)</div>
+          <div class="menu-sub">أفضل مناطق الدخول المحدود</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">VIP</div>
+    <div class="menu-item" onclick="openDetail('vip1')">
+      <div class="menu-arrow">‹</div>
+      <div class="menu-left">
+        <div class="menu-icon">⭐</div>
+        <div>
+          <div class="menu-name"><span class="vip-badge">VIP 1</span>محرك الإجماع</div>
+          <div class="menu-sub">Trading VIP 1</div>
+        </div>
+      </div>
+    </div>
+    <div class="menu-item" onclick="openDetail('vip2')">
+      <div class="menu-arrow">‹</div>
+      <div class="menu-left">
+        <div class="menu-icon">💧</div>
+        <div>
+          <div class="menu-name"><span class="vip-badge">VIP 2</span>إجماع السيولة</div>
+          <div class="menu-sub">Trading VIP 2</div>
+        </div>
+      </div>
+    </div>
+    <div class="menu-item" onclick="openDetail('flash')">
+      <div class="menu-arrow">‹</div>
+      <div class="menu-left">
+        <div class="menu-icon">⚡</div>
+        <div>
+          <div class="menu-name">FLASH (Scalping Engine)</div>
+          <div class="menu-sub">محرك السكالبينج الفائق السرعة</div>
+        </div>
+      </div>
+    </div>
+    <div class="menu-item" onclick="openDetail('vip3')">
+      <div class="menu-arrow">‹</div>
+      <div class="menu-left">
+        <div class="menu-icon">📊</div>
+        <div>
+          <div class="menu-name"><span class="vip-badge">VIP 3</span>RSI Div+Fib+SMC</div>
+          <div class="menu-sub">Trading VIP 3</div>
+        </div>
+      </div>
+    </div>
+    <div class="menu-item" onclick="openDetail('vip4')">
+      <div class="menu-arrow">‹</div>
+      <div class="menu-left">
+        <div class="menu-icon">🏆</div>
+        <div>
+          <div class="menu-name"><span class="vip-badge">VIP 4</span>Scalping Pro</div>
+          <div class="menu-sub">Trading VIP 4</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">متقدم</div>
+    <div class="menu-item" onclick="openDetail('auto')">
+      <div class="menu-arrow">‹</div>
+      <div class="menu-left">
+        <div class="menu-icon">🤖</div>
+        <div>
+          <div class="menu-name">Trading 1 (المستشار الآلي)</div>
+          <div class="menu-sub">توصيات ذكاء اصطناعي</div>
+        </div>
+      </div>
+    </div>
+    <div class="menu-item" onclick="openDetail('x1')">
+      <div class="menu-arrow">‹</div>
+      <div class="menu-left">
+        <div class="menu-icon">🔄</div>
+        <div>
+          <div class="menu-name">Trading X1 (المحرك الرباعي)</div>
+          <div class="menu-sub">نظام تداول رباعي الأبعاد</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RISK -->
+  <div id="page-risk" class="page">
+    <div class="risk-card">
+      <div class="risk-title">🛡️ إدارة المخاطر</div>
+      <div class="risk-item"><div class="risk-label">رأس المال</div><div class="risk-val" id="r-capital">$1,000</div></div>
+      <div class="risk-item"><div class="risk-label">نسبة المخاطرة</div><div class="risk-val" id="r-pct">2%</div></div>
+      <div class="risk-item"><div class="risk-label">قيمة المخاطرة</div><div class="risk-val" id="r-val">$20</div></div>
+      <div class="risk-item"><div class="risk-label">نسبة الربح/خسارة</div><div class="risk-val">1 : 3</div></div>
+      <div class="risk-item"><div class="risk-label">الحد الأقصى للصفقات</div><div class="risk-val">3 صفقات</div></div>
+    </div>
+    <div class="risk-card">
+      <div class="risk-title">📈 إحصائيات السوق</div>
+      <div class="risk-item"><div class="risk-label">BTC Dominance</div><div class="risk-val" id="r-btcdom">--%</div></div>
+      <div class="risk-item"><div class="risk-label">ETH Dominance</div><div class="risk-val" id="r-ethdom">--%</div></div>
+      <div class="risk-item"><div class="risk-label">حجم السوق 24H</div><div class="risk-val" id="r-vol">$---B</div></div>
+    </div>
+  </div>
+
+  <!-- SEARCH -->
+  <div id="page-search" class="page">
+    <div class="search-wrap">
+      <input class="search-input" type="text" placeholder="ابحث عن عملة... مثل: BTC ETH SOL" id="searchInput" oninput="doSearch()"/>
+    </div>
+    <div id="searchResults"></div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-item" onclick="goPage('menu')">
+    <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    القائمة
+  </button>
+  <button class="nav-item" onclick="refreshAll()">
+    <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+    تحديث
+  </button>
+  <button class="nav-item" onclick="goPage('risk')">
+    <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    مخاطر
+  </button>
+  <button class="nav-item" onclick="goPage('search')">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    بحث
+  </button>
+  <button class="nav-item active" id="nav-home" onclick="goPage('home')">
+    <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    الرئيسية
+  </button>
+</nav>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- DETAIL PANEL -->
+<div class="detail-panel" id="detailPanel" onclick="closeDetail(event)">
+  <div class="detail-box">
+    <div class="detail-close" onclick="closeDetail()"></div>
+    <div class="detail-h" id="detailTitle"></div>
+    <div class="detail-body" id="detailBody"></div>
+  </div>
+</div>
+
+<script>
+// ── TELEGRAM INIT ──
+if(window.Telegram?.WebApp){
+  Telegram.WebApp.ready();
+  Telegram.WebApp.expand();
+}
+
+// ── PAGES ──
+let currentPage='home';
+function goPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  const navMap={home:'nav-home'};
+  if(navMap[id]) document.getElementById(navMap[id]).classList.add('active');
+  currentPage=id;
+  if(id==='home') refreshAll();
+}
+
+// ── TOAST ──
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+// ── CRYPTO DATA ──
+let chartData=[];
+async function fetchBinance(symbol){
+  const r=await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`);
+  return r.json();
+}
+async function fetchKlines(symbol,interval='1h',limit=24){
+  const r=await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`);
+  return r.json();
+}
+async function fetchDominance(){
+  try{
+    const r=await fetch('https://api.coingecko.com/api/v3/global');
+    const d=await r.json();
+    return{btc:d.data.market_cap_percentage.btc,eth:d.data.market_cap_percentage.eth};
+  }catch{return{btc:58,eth:10.5}}
+}
+
+function fmt(n){return Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
+
+async function loadPrices(){
+  try{
+    const[btc,eth,dom,klines]=await Promise.all([
+      fetchBinance('BTCUSDT'),
+      fetchBinance('ETHUSDT'),
+      fetchDominance(),
+      fetchKlines('BTCUSDT')
+    ]);
+
+    // BTC
+    const bp=parseFloat(btc.lastPrice);
+    const bc=parseFloat(btc.priceChangePercent);
+    document.getElementById('btc-price').innerHTML=`<span>$</span>${fmt(bp)}`;
+    const bcEl=document.getElementById('btc-change');
+    bcEl.textContent=(bc>=0?'▲ +':'▼ ')+bc.toFixed(2)+'%';
+    bcEl.className='change-badge '+(bc>=0?'up':'down');
+    document.getElementById('btc-high').textContent='$'+fmt(btc.highPrice);
+    document.getElementById('btc-low').textContent='$'+fmt(btc.lowPrice);
+
+    // ETH
+    const ep=parseFloat(eth.lastPrice);
+    const ec=parseFloat(eth.priceChangePercent);
+    document.getElementById('eth-price').innerHTML=`<span>$</span>${fmt(ep)}`;
+    const ecEl=document.getElementById('eth-change');
+    ecEl.textContent=(ec>=0?'▲ +':'▼ ')+ec.toFixed(2)+'%';
+    ecEl.className='change-badge '+(ec>=0?'up':'down');
+
+    // Dominance
+    const btcD=dom.btc.toFixed(2)+'%';
+    const ethD=dom.eth.toFixed(2)+'%';
+    document.getElementById('btc-dom').textContent=btcD;
+    document.getElementById('eth-dom').textContent=ethD;
+    document.getElementById('r-btcdom').textContent=btcD;
+    document.getElementById('r-ethdom').textContent=ethD;
+
+    // Vol
+    const vol=(parseFloat(btc.quoteVolume)/1e9).toFixed(1);
+    document.getElementById('r-vol').textContent='$'+vol+'B';
+
+    // Chart
+    chartData=klines.map(k=>parseFloat(k[4]));
+    drawChart(chartData);
+
+  }catch(e){console.error(e);showToast('خطأ في جلب البيانات')}
+}
+
+// ── MINI CHART ──
+function drawChart(prices){
+  const canvas=document.getElementById('btcChart');
+  if(!canvas)return;
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=canvas.offsetWidth*dpr;
+  canvas.height=90*dpr;
+  const ctx=canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  const W=canvas.offsetWidth,H=90;
+  const mn=Math.min(...prices),mx=Math.max(...prices);
+  const range=mx-mn||1;
+  const pts=prices.map((p,i)=>({x:(i/(prices.length-1))*W,y:H-((p-mn)/range)*(H-10)-5}));
+  // gradient fill
+  const grad=ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0,'rgba(247,147,26,.4)');
+  grad.addColorStop(1,'rgba(247,147,26,0)');
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x,H);
+  pts.forEach(p=>ctx.lineTo(p.x,p.y));
+  ctx.lineTo(pts[pts.length-1].x,H);
+  ctx.closePath();
+  ctx.fillStyle=grad;
+  ctx.fill();
+  // line
+  ctx.beginPath();
+  pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
+  ctx.strokeStyle='#f7931a';
+  ctx.lineWidth=2;
+  ctx.lineJoin='round';
+  ctx.stroke();
+}
+
+// ── HALVING COUNTDOWN ──
+function halving(){
+  // Next halving at block 1,050,000 (~April 2028)
+  const target=new Date('2028-04-19T00:00:00Z');
+  const now=new Date();
+  let diff=Math.max(0,target-now)/1000;
+  const days=Math.floor(diff/86400); diff%=86400;
+  const hrs=Math.floor(diff/3600); diff%=3600;
+  const mins=Math.floor(diff/60);
+  const secs=Math.floor(diff%60);
+  const items=[
+    [days,'يوم'],[hrs,'ساعة'],[mins,'دقيقة'],[secs,'ثانية']
+  ];
+  document.getElementById('halving').innerHTML=items.map(([v,l])=>
+    `<div class="cd-item"><div class="cd-num">${String(v).padStart(2,'0')}</div><div class="cd-lbl">${l}</div></div>`
+  ).join('');
+}
+
+// ── REFRESH ──
+async function refreshAll(){
+  await loadPrices();
+  halving();
+}
+
+// ── DETAIL PANEL ──
+const details={
+  wedge:{title:'📐 الوتد (Wedge Scanner)',body:'<b>ماذا يفعل؟</b><br>يكشف أنماط الوتد الصاعد والهابط في الرسوم البيانية.<br><br><b>كيف تستخدمه؟</b><br>• الوتد الهابط: إشارة شراء محتملة<br>• الوتد الصاعد: إشارة بيع محتملة<br>• انتظر الكسر مع حجم تداول مرتفع'},
+  smc:{title:'🧱 SMC Order Blocks',body:'<b>Smart Money Concept</b><br>يحدد مناطق طلب وعرض المؤسسات الكبيرة (الحيتان).<br><br><b>الاستخدام:</b><br>• Order Block صاعد = منطقة شراء<br>• Order Block هابط = منطقة بيع<br>• أقوى إشارة عند التقاطع مع FVG'},
+  zones:{title:'🎯 Best Zones',body:'<b>أفضل مناطق الدخول المحدود</b><br>يحسب أفضل سعر للدخول بأوامر Limit.<br><br><b>المميزات:</b><br>• دقة عالية في تحديد المناطق<br>• نسبة ربح/خسارة مثالية<br>• مناسب للمبتدئين'},
+  vip1:{title:'⭐ VIP 1 - محرك الإجماع',body:'<b>كيف يعمل؟</b><br>يحلل إجماع المؤشرات المتعددة ويعطي إشارة موحدة.<br><br>• RSI + MACD + Bollinger Bands<br>• إشارة واضحة: شراء / بيع / انتظار<br>• مناسب للتداول اليومي (D1)'},
+  vip2:{title:'💧 VIP 2 - إجماع السيولة',body:'<b>Liquidity Consensus</b><br>يرصد مناطق السيولة ويتداول معها.<br><br>• يكشف صيد الوقف (Stop Hunt)<br>• يحدد مناطق رأس المال الكبير<br>• دقة عالية في أسواق التشفير'},
+  flash:{title:'⚡ FLASH - Scalping Engine',body:'<b>محرك السكالبينج الفائق</b><br>مصمم للتداول السريع (1-15 دقيقة).<br><br>• إشارات فورية<br>• هدف ربح صغير لكن متكرر<br>• يتطلب تركيزاً عالياً وسرعة'},
+  vip3:{title:'📊 VIP 3 - RSI+Fib+SMC',body:'<b>تحليل ثلاثي القوة</b><br>يجمع بين 3 أنظمة تحليل قوية:<br><br>• <b>RSI Divergence:</b> كشف الاتجاه<br>• <b>Fibonacci:</b> مستويات الدعم والمقاومة<br>• <b>SMC:</b> مناطق المؤسسات'},
+  vip4:{title:'🏆 VIP 4 - Scalping Pro',body:'<b>النسخة الاحترافية من FLASH</b><br>للمتداولين المحترفين فقط.<br><br>• إشارات متعددة التأكيد<br>• إدارة مخاطر متقدمة<br>• مناسب للـ Futures'},
+  auto:{title:'🤖 المستشار الآلي',body:'<b>AI Trading Advisor</b><br>يحلل السوق ويعطي توصيات تلقائية.<br><br>• يعمل 24/7<br>• يراقب أكثر من 50 عملة<br>• يرسل إشعارات فورية عند الفرصة'},
+  x1:{title:'🔄 Trading X1 - المحرك الرباعي',body:'<b>أقوى أنظمة BOT 360°</b><br>يجمع 4 أنظمة تحليل في آن واحد:<br><br>1. تحليل الاتجاه الكبير (HTF)<br>2. تحليل الاتجاه الصغير (LTF)<br>3. إجماع المؤشرات<br>4. مناطق السيولة'}
+};
+function openDetail(key){
+  const d=details[key];
+  document.getElementById('detailTitle').textContent=d.title;
+  document.getElementById('detailBody').innerHTML=d.body;
+  document.getElementById('detailPanel').classList.add('open');
+}
+function closeDetail(e){
+  if(!e||e.target===document.getElementById('detailPanel')||e.currentTarget===document.querySelector('.detail-close'))
+    document.getElementById('detailPanel').classList.remove('open');
+}
+
+// ── SEARCH ──
+const coins=['BTCUSDT','ETHUSDT','BNBUSDT','SOLUSDT','XRPUSDT','ADAUSDT','DOGEUSDT','AVAXUSDT','DOTUSDT','MATICUSDT'];
+async function doSearch(){
+  const q=document.getElementById('searchInput').value.trim().toUpperCase();
+  const el=document.getElementById('searchResults');
+  if(!q){el.innerHTML='';return}
+  const matched=coins.filter(c=>c.includes(q));
+  if(!matched.length){el.innerHTML='<div class="loading">لا توجد نتائج</div>';return}
+  el.innerHTML='<div class="loading"><div class="spinner"></div>جارٍ البحث...</div>';
+  try{
+    const results=await Promise.all(matched.map(s=>fetchBinance(s)));
+    el.innerHTML=results.map(r=>{
+      const p=parseFloat(r.lastPrice),c=parseFloat(r.priceChangePercent);
+      const up=c>=0;
+      return`<div class="menu-item">
+        <div style="font-family:'IBM Plex Mono',monospace;text-align:left">
+          <div style="font-size:14px;font-weight:700;color:${up?'var(--green)':'var(--red)'}">${up?'▲ +':'▼ '}${c.toFixed(2)}%</div>
+          <div style="font-size:12px;color:var(--muted)">$${fmt(r.highPrice)} H</div>
+        </div>
+        <div class="menu-left">
+          <div class="menu-icon" style="font-size:13px;font-family:monospace">${r.symbol.replace('USDT','')}</div>
+          <div>
+            <div class="menu-name">$${fmt(p)}</div>
+            <div class="menu-sub">${r.symbol}</div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }catch{el.innerHTML='<div class="loading">خطأ في البحث</div>'}
+}
+
+// ── INIT ──
+setInterval(halving,1000);
+setInterval(()=>{if(currentPage==='home')loadPrices()},15000);
+refreshAll();
+window.addEventListener('resize',()=>drawChart(chartData));
+</script>
+</body>
+</html>
