@@ -13,10 +13,12 @@ from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandl
 
 # ══════════════════════════════════════════
 #  ضع هنا توكن البوت الخاص بك من @BotFather
-BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"
+import os
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+
 
 #  ضع هنا رابط صفحة index.html بعد رفعها على الإنترنت
-WEBAPP_URL = "https://your-hosting-url.com/index.html"
+WEBAPP_URL = os.environ.get("WEBAPP_URL")
 # ══════════════════════════════════════════
 
 logging.basicConfig(
